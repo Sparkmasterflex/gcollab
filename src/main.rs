@@ -8,8 +8,11 @@ use std::collections::HashMap;
 
 fn main() -> std::io::Result<()> {
     let add_command = String::from("add");
+    let remove_command = String::from("remove");
+
     let args: Vec<String> = env::args().collect();
     let slug_or_command = &args[1];
+    let mut hash = collaborators_hash();
 
     if slug_or_command == &add_command {
         if args.len() < 5 {
@@ -18,12 +21,23 @@ fn main() -> std::io::Result<()> {
             let slug = &args[2];
             let name = &args[3];
             let email = &args[4];
-            let mut hash = collaborators_hash();
             hash.insert(slug.to_string(), format!("{name} <{email}>"));
 
             let to_write = serde_json::to_string(&hash).expect("something went wrong");
             fs::write("collaborators.json", &to_write);
         }
+
+    } else if slug_or_command == &remove_command {
+        if args.len() < 3 {
+            println!("\"remove\" help: provide `slug`")
+        } else {
+            let slug = &args[2];
+            hash.remove(slug);
+
+            let to_write = serde_json::to_string(&hash).expect("something went wrong");
+            fs::write("collaborators.json", &to_write);
+        }
+
     } else {
         let slug = slug_or_command;
 
