@@ -35,63 +35,88 @@ fn main() -> std::io::Result<()> {
     let list_command = String::from("list");
 
     let args: Vec<String> = env::args().collect();
-    let slug_or_command = &args[1];
-    let mut existing_collabs = collaborators_hash();
-
-    if slug_or_command == &add_command {
-        if args.len() < 5 {
-            println!("\"add\" help: provide `slug`, `name` and `email`")
-        } else {
-            let collab = Collaborator::new(&args[2], &args[3], &args[4]);
-            existing_collabs.push(collab);
-            let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
-
-            fs::write("collaborators.json", &to_write);
-        }
-
-    } else if slug_or_command == &remove_command {
-        if args.len() < 3 {
-            println!("\"remove\" help: provide `slug`")
-        } else {
-            let slug = &args[2];
-            let no_match = format!("{slug} collaborator not found").to_string();
-            let matches = collaborators_by_slug(&slug);
-            if matches.len() > 0 {
-                let index = existing_collabs.iter().position(|r| r.slug == matches[0].slug).unwrap();
-                existing_collabs.remove(index);
-                let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
-
-                fs::write("collaborators.json", &to_write);
-                println!("{} removed!", &slug);
-            } else {
-                println!("{}", no_match);
-            }
-        }
-
-    } else if slug_or_command == &list_command {
-        for collab in existing_collabs {
-            println!("{}", collab.slug);
-        }
+    if args.len() < 2  {
+        println!("do something different");
 
     } else {
-        let slug = slug_or_command;
-        let no_match = format!("{slug} collaborator not found").to_string();
-        let matches = collaborators_by_slug(&slug);
+        let slug_or_command = &args[1];
+        let mut existing_collabs = collaborators_hash();
 
-        if matches.len() > 0 {
-            let collab = &matches[0];
-            let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-            let formatted = format!("{} <{}>", collab.name, collab.email);
-            ctx.set_contents(formatted.to_owned()).unwrap();
-            println!("{} copied!", formatted);
+        if slug_or_command == &add_command {
+            add_collaborator();
+
+        } else if slug_or_command == &remove_command {
+            remove_collaborator();
+
+        } else if slug_or_command == &list_command {
+            for collab in existing_collabs {
+                println!("{}", collab.slug);
+            }
+
         } else {
-            println!("{}", no_match);
+            find_and_copy_collaborator()
         }
+
     }
 
     Ok({})
 }
 
+fn add_collaborator() {
+    let args: Vec<String> = env::args().collect();
+    let mut existing_collabs = collaborators_hash();
+
+    if args.len() < 5 {
+        println!("\"add\" help: provide `slug`, `name` and `email`")
+    } else {
+        let collab = Collaborator::new(&args[2], &args[3], &args[4]);
+        existing_collabs.push(collab);
+        let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
+
+        fs::write("collaborators.json", &to_write);
+    }
+}
+
+fn remove_collaborator() {
+    let args: Vec<String> = env::args().collect();
+    let mut existing_collabs = collaborators_hash();
+
+    if args.len() < 3 {
+        println!("\"remove\" help: provide `slug`")
+    } else {
+        let slug = &args[2];
+        let no_match = format!("{slug} collaborator not found").to_string();
+        let matches = collaborators_by_slug(&slug);
+        if matches.len() > 0 {
+            let index = existing_collabs.iter().position(|r| r.slug == matches[0].slug).unwrap();
+            existing_collabs.remove(index);
+            let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
+
+            fs::write("collaborators.json", &to_write);
+            println!("{} removed!", &slug);
+        } else {
+            println!("{}", no_match);
+        }
+    }
+}
+
+fn find_and_copy_collaborator() {
+    let args: Vec<String> = env::args().collect();
+
+    let slug = &args[1];
+    let no_match = format!("{slug} collaborator not found").to_string();
+    let matches = collaborators_by_slug(&slug);
+
+    if matches.len() > 0 {
+        let collab = &matches[0];
+        let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+        let formatted = format!("{} <{}>", collab.name, collab.email);
+        ctx.set_contents(formatted.to_owned()).unwrap();
+        println!("{} copied!", formatted);
+    } else {
+        println!("{}", no_match);
+    }
+}
 fn collaborators_by_slug(slug: &str) -> Vec<Collaborator> {
     let collabs = collaborators_hash();
     collabs
