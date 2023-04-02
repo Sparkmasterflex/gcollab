@@ -74,15 +74,25 @@ fn list_collaborators() {
 fn add_collaborator() {
     let args: Vec<String> = env::args().collect();
     let mut existing_collabs = collaborators_hash();
+    let collab: Collaborator;
 
     if args.len() < 5 {
-        println!("\"add\" help: provide `slug`, `name` and `email`")
+        collab = assited_creation();
     } else {
-        let collab = Collaborator::new(&args[2], &args[3], &args[4]);
-        existing_collabs.push(collab);
-        let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
+        collab = Collaborator::new(&args[2], &args[3], &args[4]);
+    }
 
-        let _ = fs::write("collaborators.json", &to_write);
+    let slug = collab.slug.clone();
+    existing_collabs.push(collab);
+    let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
+
+    let result = fs::write("collaborators.json", &to_write);
+    if result.is_ok() {
+        let saved = collaborators_by_slug(&slug);
+        println!("{} added!", &saved[0].name);
+        copy_collaborator(&saved[0]);
+    } else {
+        println!("epic fail")
     }
 }
 
@@ -183,4 +193,22 @@ fn collaborators_hash() -> Vec<Collaborator> {
     let reader = BufReader::new(file);
 
     serde_json::from_reader(reader).expect("JSON was not well-formatted")
+}
+
+fn assited_creation() -> Collaborator {
+    let mut slug = String::new();
+    let mut name = String::new();
+    let mut email = String::new();
+
+    println!("Enter a identifier for your git collaborator:");
+    std::io::stdin().read_line(&mut slug).unwrap();
+
+    println!("\n\nEnter collaborator's full name:");
+    std::io::stdin().read_line(&mut name).unwrap();
+
+    println!("\n\nEnter collaborator's email:");
+    std::io::stdin().read_line(&mut email).unwrap();
+    println!("\n\n");
+
+    return Collaborator::new(&slug.trim(), &name.trim(), &email.trim());
 }
