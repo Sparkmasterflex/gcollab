@@ -36,11 +36,15 @@ fn main() -> std::io::Result<()> {
 
     let args: Vec<String> = env::args().collect();
     if args.len() < 2  {
-        println!("do something different");
+        let last_used = last_used_collaborator();
+        if last_used.is_some() {
+            copy_collaborator(&last_used.unwrap());
+        } else {
+            list_collaborators();
+        }
 
     } else {
         let slug_or_command = &args[1];
-        let mut existing_collabs = collaborators_hash();
 
         if slug_or_command == &add_command {
             add_collaborator();
@@ -49,9 +53,7 @@ fn main() -> std::io::Result<()> {
             remove_collaborator();
 
         } else if slug_or_command == &list_command {
-            for collab in existing_collabs {
-                println!("{}", collab.slug);
-            }
+            list_collaborators();
 
         } else {
             find_and_copy_collaborator()
@@ -60,6 +62,13 @@ fn main() -> std::io::Result<()> {
     }
 
     Ok({})
+}
+
+fn list_collaborators() {
+    let existing_collabs = collaborators_hash();
+    for collab in existing_collabs {
+        println!("{}", collab.slug);
+    }
 }
 
 fn add_collaborator() {
@@ -73,7 +82,7 @@ fn add_collaborator() {
         existing_collabs.push(collab);
         let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
 
-        fs::write("collaborators.json", &to_write);
+        let _ = fs::write("collaborators.json", &to_write);
     }
 }
 
@@ -92,7 +101,7 @@ fn remove_collaborator() {
             existing_collabs.remove(index);
             let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
 
-            fs::write("collaborators.json", &to_write);
+            let _ = fs::write("collaborators.json", &to_write);
             println!("{} removed!", &slug);
         } else {
             println!("{}", no_match);
@@ -108,21 +117,65 @@ fn find_and_copy_collaborator() {
     let matches = collaborators_by_slug(&slug);
 
     if matches.len() > 0 {
-        let collab = &matches[0];
-        let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-        let formatted = format!("{} <{}>", collab.name, collab.email);
-        ctx.set_contents(formatted.to_owned()).unwrap();
-        println!("{} copied!", formatted);
+        copy_collaborator(&matches[0]);
+        update_last_used(&matches[0]);
     } else {
         println!("{}", no_match);
     }
 }
+
+fn copy_collaborator(collab: &Collaborator) {
+    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+    let formatted = format!("{} <{}>", collab.name, collab.email);
+    ctx.set_contents(formatted.to_owned()).unwrap();
+    println!("{} copied!", formatted);
+}
+
 fn collaborators_by_slug(slug: &str) -> Vec<Collaborator> {
     let collabs = collaborators_hash();
     collabs
         .into_iter()
         .filter(|c| &c.slug == slug)
         .collect()
+}
+
+fn last_used_collaborator() -> Option<Collaborator> {
+    let collabs = collaborators_hash();
+    let matches: Vec<Collaborator> = collabs
+        .into_iter()
+        .filter(|c| &c.last_used == &true)
+        .collect();
+
+    if matches.len() > 0  {
+        let collab = &matches[0];
+        return Some(Collaborator::new(&collab.slug, &collab.name, &collab.email))
+    } else {
+        return None
+    }
+}
+
+fn update_last_used(current: &Collaborator) {
+    let mut existing_collabs = collaborators_hash();
+    let mut new_last_used = Collaborator::new(&current.slug, &current.name, &current.email);
+    new_last_used.last_used = true;
+
+    let old_last_used: Collaborator;
+
+    let last_used = last_used_collaborator();
+    if last_used.is_some() {
+        let collab = last_used.unwrap();
+        let old_index = existing_collabs.iter().position(|r| r.slug == collab.slug).unwrap();
+        existing_collabs.remove(old_index);
+        old_last_used = Collaborator::new(&collab.slug, &collab.name, &collab.email);
+        existing_collabs.push(old_last_used);
+    }
+
+    let index = existing_collabs.iter().position(|r| r.slug == new_last_used.slug).unwrap();
+    existing_collabs.remove(index);
+    existing_collabs.push(new_last_used);
+    let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
+
+    let _ = fs::write("collaborators.json", &to_write);
 }
 
 fn collaborators_hash() -> Vec<Collaborator> {
