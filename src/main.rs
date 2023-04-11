@@ -159,7 +159,7 @@ fn find_and_copy_collaborator() {
 
 fn copy_collaborator(collab: &Collaborator) {
     let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-    let formatted = format!("{} <{}>", collab.name, collab.email);
+    let formatted = format!("Co-authored-by: {} <{}>", collab.name, collab.email);
     ctx.set_contents(formatted.to_owned()).unwrap();
     println!("{} copied!", formatted);
 }
