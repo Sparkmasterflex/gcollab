@@ -2,7 +2,9 @@ use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::BufReader;
+use std::path::Path;
 use serde::{Serialize, Deserialize};
+use home;
 use serde_json;
 
 extern crate clipboard;
@@ -64,10 +66,31 @@ fn main() -> std::io::Result<()> {
     Ok({})
 }
 
+fn config_file() -> String {
+    let home_dir = home::home_dir().unwrap();
+    let gcollab_dir = format!("{}/.gcollab", &home_dir.display());
+    if !Path::new(&gcollab_dir).is_dir() {
+        fs::create_dir(&gcollab_dir);
+    }
+    let file_path = format!("{}/collaborators.json", &gcollab_dir);
+
+    if !std::path::Path::new(&file_path).exists() {
+        let empty: Vec<Collaborator> = Vec::new();
+        let to_write = serde_json::to_string(&empty).expect("something went wrong");
+        fs::write(&file_path, &to_write);
+    }
+    return file_path;
+}
+
 fn list_collaborators() {
     let existing_collabs = collaborators_hash();
-    for collab in existing_collabs {
-        println!("{}", collab.slug);
+    if existing_collabs.len() > 0 {
+        for collab in existing_collabs {
+            println!("{}", collab.slug);
+        }
+    } else {
+        println!("Goose Egg");
+        println!("Try 'gcollab add' to create some.");
     }
 }
 
@@ -86,7 +109,7 @@ fn add_collaborator() {
     existing_collabs.push(collab);
     let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
 
-    let result = fs::write("collaborators.json", &to_write);
+    let result = fs::write(config_file(), &to_write);
     if result.is_ok() {
         let saved = collaborators_by_slug(&slug);
         println!("{} added!", &saved[0].name);
@@ -111,7 +134,7 @@ fn remove_collaborator() {
             existing_collabs.remove(index);
             let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
 
-            let _ = fs::write("collaborators.json", &to_write);
+            let _ = fs::write(config_file(), &to_write);
             println!("{} removed!", &slug);
         } else {
             println!("{}", no_match);
@@ -185,11 +208,11 @@ fn update_last_used(current: &Collaborator) {
     existing_collabs.push(new_last_used);
     let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
 
-    let _ = fs::write("collaborators.json", &to_write);
+    let _ = fs::write(config_file(), &to_write);
 }
 
 fn collaborators_hash() -> Vec<Collaborator> {
-    let file = File::open("collaborators.json").expect("can't find collaborators.json file");
+    let file = File::open(config_file()).expect("can't find collaborators.json file");
     let reader = BufReader::new(file);
 
     serde_json::from_reader(reader).expect("JSON was not well-formatted")
