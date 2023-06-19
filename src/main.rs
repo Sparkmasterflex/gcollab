@@ -70,14 +70,20 @@ fn config_file() -> String {
     let home_dir = home::home_dir().unwrap();
     let gcollab_dir = format!("{}/.gcollab", &home_dir.display());
     if !Path::new(&gcollab_dir).is_dir() {
-        fs::create_dir(&gcollab_dir);
+        let result = fs::create_dir(&gcollab_dir);
+        if result.is_err() {
+            println!("can't get to config file");
+        }
     }
     let file_path = format!("{}/collaborators.json", &gcollab_dir);
 
     if !std::path::Path::new(&file_path).exists() {
         let empty: Vec<Collaborator> = Vec::new();
         let to_write = serde_json::to_string(&empty).expect("something went wrong");
-        fs::write(&file_path, &to_write);
+        let result = fs::write(&file_path, &to_write);
+        if result.is_err() {
+            println!("can't get to config file");
+        }
     }
     return file_path;
 }
@@ -134,8 +140,12 @@ fn remove_collaborator() {
             existing_collabs.remove(index);
             let to_write = serde_json::to_string(&existing_collabs).expect("something went wrong");
 
-            let _ = fs::write(config_file(), &to_write);
-            println!("{} removed!", &slug);
+            let result = fs::write(config_file(), &to_write);
+            if result.is_ok() {
+                println!("{} removed!", &slug);
+            } else {
+                println!("unable to remove collaborator");
+            }
         } else {
             println!("{}", no_match);
         }
