@@ -1,20 +1,24 @@
 # gcollab
 Script for managing Git Collaborators
 
+## Necessary Setup
+
+* Create a directory in your home directory `.gcollab`
+* add this directory to your $PATH variable
+  * `export PATH="$HOME/.gcollab:$PATH"` in your `.zshrc` or `.bash`
+
 ## Installing
 
-* Download [binary executable](https://github.com/Sparkmasterflex/gcollab/releases)
-* move it to `/usr/local/bin/`
+* Download latest [binary executable](https://github.com/Sparkmasterflex/gcollab/releases)
+* move it to `~/.gcollab`
 
 or
 
 * [Install rustlang](https://www.rust-lang.org/tools/install)
     - or with homebrew: `brew install rustup`
 * clone repo
-* `cd` to local directory and run `cargo build --release`
-* `cp target/release/npm_pub /usr/local/bin/`
+* `cp target/release/gcollab ~/.gcollab`
 
-_This is all assuming that `/usr/local/bin/` is in your `$PATH` variable_
 
 ## Commands
 
@@ -36,6 +40,17 @@ For quicker adding you can also pass the required arguments to the `add` command
   $ gcollab add sparky "Sparky McSparkerson" sparky@someemail.com
 ```
 
+Or you can create `collaborators.json` file in the `.gcollab` directory and build your json file yourself
+
+```json
+  [
+    { "slug":"groucho", "name":"Groucho Marx", "email":"groucho@marx.com", "last_used":true },
+    { "slug":"harpo", "name":"Harpo Marx", "email":"harpo@marx.com", "last_used":true },
+    { "slug":"chico", "name":"Chico Marx", "email":"chico@marx.com", "last_used":true },
+    { "slug":"zeppo", "name":"Zeppo Marx", "email":"zeppo@marx.com", "last_used":true }
+  ]
+```
+
 ### Copying Collaborators' Co-authored-by tag
 
 ```
@@ -49,7 +64,7 @@ Displays list of available git collaborator identifiers available. Use these to 
 
 ```
   $ gcollab list
-  > sparky
+    sparky
     frankie
     bob
 ```
